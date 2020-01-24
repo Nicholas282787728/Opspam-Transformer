@@ -87,6 +87,7 @@ def main(max_vocab_size, seq_len, batch_size, num_epochs,
     for batch_index, (inputs, labels) in enumerate(train_dataset):
         train_step(model, loss_obj, optimizer, inputs, labels)
         
+        print("\nbp{}\n".format(batch_index))
         if (batch_index + 1) % num_batches_per_validation == 0:
             validation_step(model, codes_to_words, test_dataset, batch_index)
 

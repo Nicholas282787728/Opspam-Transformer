@@ -58,7 +58,7 @@ def get_data(max_vocab_size, seq_len, batch_size, num_epochs):
     test_dataset = tf.data.Dataset.from_tensor_slices((test_data, test_labels))
     test_dataset = test_dataset.shuffle(2000).batch(batch_size)
   
-    return train_dataset, test_dataset, codes_to_words
+    return train_dataset, test_dataset, codes_to_words, len(tokenizer.texts_to_sequences(all_data))
 
 
 @tf.function
@@ -89,7 +89,7 @@ def validation_step(model, codes_to_words, test_dataset, batch_index):
     sample_prob = probs.numpy()[rand_index]
     sample_label = labels.numpy()[rand_index]
 
-    print('Batch {}:'.format(batch_index + 1))
+    print('\nBatch {}:'.format(batch_index + 1))
     print('Accuracy: {:.3f}'.format(acc_score))
     print('Sample sentence (prediction={:.3f}, actual label={}):\n{}\n'.format(
             sample_prob, sample_label, sample_words))
@@ -109,30 +109,35 @@ def main(max_vocab_size, seq_len, batch_size, num_epochs,
     :param hidden_dims: number of hidden dimensions in transformer
     :param num_batches_per_validation: frequency at which we evaluate the model's performance
     '''
-    train_dataset, test_dataset, codes_to_words = get_data(max_vocab_size, seq_len, batch_size, num_epochs)
+    train_dataset, test_dataset, codes_to_words, num_data = get_data(max_vocab_size, seq_len, batch_size, num_epochs)
     vocab_size = max_vocab_size + 4
     
     model = ClassificationTransformer(vocab_size, num_layers, model_dims,
                                       attention_depth, num_heads, hidden_dims)
     loss_obj = tf.keras.losses.BinaryCrossentropy()
-    optimizer = tf.keras.optimizers.Adam(lr=0.0001)
-
+    optimizer = tf.keras.optimizers.Adam(lr=0.0001) 
+    
+    epoch_index = 0
     for batch_index, (inputs, labels) in enumerate(train_dataset):
         train_step(model, loss_obj, optimizer, inputs, labels)
-        
+        #print("\nbp{}\n".format(batch_index))
+        if (batch_index*batch_size/num_data >= epoch_index):
+            epoch_index = epoch_index + 1
+            print("\nepoch: {}/{}".format(epoch_index, num_epochs))
+            validation_step(model, codes_to_words, test_dataset, batch_index)
         if (batch_index + 1) % num_batches_per_validation == 0:
             validation_step(model, codes_to_words, test_dataset, batch_index)
-
+            
 
 if __name__ == '__main__':
     main(max_vocab_size=10000,
          seq_len=256,
          batch_size=64,
-         num_epochs=5,
+         num_epochs=10,
          num_layers=4,
          model_dims=256,
          attention_depth=16,
          num_heads=8,
          hidden_dims=256,
-         num_batches_per_validation=250
+         num_batches_per_validation=50
     )   
