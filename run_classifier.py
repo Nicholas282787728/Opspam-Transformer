@@ -74,10 +74,16 @@ def get_data(max_vocab_size, seq_len, batch_size, num_epochs):
 
 
 @tf.function
-def train_step(model, loss_obj, optimizer, inputs, labels):
+def train_step(model, 
+               loss_obj, 
+               optimizer, 
+               inputs, 
+               labels):
+    
     with tf.GradientTape() as tape:
         probs = model(inputs, training=True)
         loss_val = loss_obj(labels, probs)
+        
     gradients = tape.gradient(loss_val, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     
@@ -85,10 +91,11 @@ def train_step(model, loss_obj, optimizer, inputs, labels):
 
 
 def validation_step(model, 
-                    codes_to_words, 
-                    val_dataset, 
-                    test_dataset, 
-                    loss_val,
+                    loss_obj,
+                    codes_to_words,
+                    train_dataset, 
+                    val_dataset,  
+                    train_loss_val,
                     num_data, 
                     epoch_index, 
                     num_epochs, 
@@ -98,19 +105,20 @@ def validation_step(model,
     # Compute accuracy score
     metric = tf.keras.metrics.Accuracy()
     
+    # For train dataset
+    for inputs, labels in train_dataset:
+        train_probs = model(inputs, training=False)
+        train_preds = tf.math.greater(train_probs, 0.5)
+        metric(tf.cast(labels, 'bool'), train_preds)
+    train_acc_score = metric.result()
+    
     # For val dataset
     for inputs, labels in val_dataset:
-        probs = model(inputs, training=False)
-        preds = tf.math.greater(probs, 0.5)
-        metric(tf.cast(labels, 'bool'), preds)
+        val_probs = model(inputs, training=False)
+        val_preds = tf.math.greater(val_probs, 0.5)
+        metric(tf.cast(labels, 'bool'), val_preds)
+        val_loss_val = loss_obj(labels, val_preds)
     val_acc_score = metric.result()
-    
-    # For test dataset
-    for inputs, labels in test_dataset:
-        probs = model(inputs, training=False)
-        preds = tf.math.greater(probs, 0.5)
-        metric(tf.cast(labels, 'bool'), preds)
-    test_acc_score = metric.result()
     
     # Print sample prediction.
     inputs, labels = next(iter(test_dataset.take(1)))
@@ -124,11 +132,29 @@ def validation_step(model,
     
     print("\nEpoch: {}/{}".format(epoch_index, num_epochs))
     print('Batch: {}/{:.0f}'.format(batch_index + 1, num_data/batch_size*num_epochs))
-    print("Loss value: {}".format(loss_val))
-    print('Val accuracy: {:.3f}, Test accuracy: {:.3f}'.format(val_acc_score, test_acc_score))
+    print("Train loss value: {}, Val loss value: {}".format(train_loss_val, val_loss_val))
+    print('Train accuracy: {:.3f}, Val accuracy: {:.3f}'.format(train_acc_score, val_acc_score))
     print('Sample sentence (prediction={:.3f}, actual label={}):\n{}\n'.format(
             sample_prob, sample_label, sample_words))
     
+def test_step(model,
+              loss_obj,
+              test_dataset):
+    
+    # Compute accuracy score
+    metric = tf.keras.metrics.Accuracy()
+    
+    # For test dataset
+    for inputs, labels in test_dataset:
+        probs = model(inputs, training=False)
+        preds = tf.math.greater(probs, 0.5)
+        metric(tf.cast(labels, 'bool'), preds)
+        test_loss_val = loss_obj(labels, preds)
+    test_acc_score = metric.result()
+    
+    print("\nTest loss value: {}".format(test_loss_val))
+    print('Test accuracy: {:.3f}'.format(test_acc_score))
+
 
 def main(max_vocab_size, seq_len, batch_size, num_epochs,
          num_layers, model_dims, attention_depth, num_heads, hidden_dims,
@@ -154,23 +180,27 @@ def main(max_vocab_size, seq_len, batch_size, num_epochs,
     
     epoch_index = 0
     for batch_index, (inputs, labels) in enumerate(train_dataset):
-        loss_val = train_step(model, loss_obj, optimizer, inputs, labels)
+        train_loss_val = train_step(model, loss_obj, optimizer, inputs, labels)
         #print("\nbp{}\n".format(batch_index))
         if (batch_index*batch_size/num_data >= epoch_index):
             epoch_index = epoch_index + 1
             #validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size)
         if (batch_index + 1) % num_batches_per_validation == 0:
-            validation_step(model, 
+            validation_step(model,
+                            loss_obj, 
                             codes_to_words, 
+                            train_dataset, 
                             val_dataset, 
-                            test_dataset, 
-                            loss_val,
+                            train_loss_val,
                             num_data, 
                             epoch_index, 
                             num_epochs, 
                             batch_index, 
                             batch_size)
-            
+    
+    test_step(model, loss_obj, test_dataset)
+
+
 
 if __name__ == '__main__':
     main(max_vocab_size=10000,
