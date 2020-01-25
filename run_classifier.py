@@ -80,9 +80,20 @@ def train_step(model, loss_obj, optimizer, inputs, labels):
         loss_val = loss_obj(labels, probs)
     gradients = tape.gradient(loss_val, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    
+    return loss_val
 
 
-def validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size):
+def validation_step(model, 
+                    codes_to_words, 
+                    val_dataset, 
+                    test_dataset, 
+                    loss_val,
+                    num_data, 
+                    epoch_index, 
+                    num_epochs, 
+                    batch_index, 
+                    batch_size):
     
     # Compute accuracy score
     metric = tf.keras.metrics.Accuracy()
@@ -113,6 +124,7 @@ def validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, 
     
     print("\nEpoch: {}/{}".format(epoch_index, num_epochs))
     print('Batch: {}/{:.0f}'.format(batch_index + 1, num_data/batch_size*num_epochs))
+    print("Loss value: {}".format(loss_val))
     print('Val accuracy: {:.3f}, Test accuracy: {:.3f}'.format(val_acc_score, test_acc_score))
     print('Sample sentence (prediction={:.3f}, actual label={}):\n{}\n'.format(
             sample_prob, sample_label, sample_words))
@@ -142,13 +154,22 @@ def main(max_vocab_size, seq_len, batch_size, num_epochs,
     
     epoch_index = 0
     for batch_index, (inputs, labels) in enumerate(train_dataset):
-        train_step(model, loss_obj, optimizer, inputs, labels)
+        loss_val = train_step(model, loss_obj, optimizer, inputs, labels)
         #print("\nbp{}\n".format(batch_index))
         if (batch_index*batch_size/num_data >= epoch_index):
             epoch_index = epoch_index + 1
             #validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size)
         if (batch_index + 1) % num_batches_per_validation == 0:
-            validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size)
+            validation_step(model, 
+                            codes_to_words, 
+                            val_dataset, 
+                            test_dataset, 
+                            loss_val,
+                            num_data, 
+                            epoch_index, 
+                            num_epochs, 
+                            batch_index, 
+                            batch_size)
             
 
 if __name__ == '__main__':
