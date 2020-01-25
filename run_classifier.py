@@ -82,7 +82,7 @@ def train_step(model, loss_obj, optimizer, inputs, labels):
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
 
-def validation_step(model, codes_to_words, val_dataset, test_dataset, epoch_index, num_epochs, batch_index):
+def validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size):
     
     # Compute accuracy score
     metric = tf.keras.metrics.Accuracy()
@@ -112,7 +112,7 @@ def validation_step(model, codes_to_words, val_dataset, test_dataset, epoch_inde
     sample_label = labels.numpy()[rand_index]
     
     print("\nEpoch: {}/{}".format(epoch_index, num_epochs))
-    print('Batch {}:'.format(batch_index + 1))
+    print('Batch: {}/{:.0f}'.format(batch_index + 1, num_data/batch_size*num_epochs))
     print('Val accuracy: {:.3f}, Test accuracy: {:.3f}'.format(val_acc_score, test_acc_score))
     print('Sample sentence (prediction={:.3f}, actual label={}):\n{}\n'.format(
             sample_prob, sample_label, sample_words))
@@ -146,16 +146,16 @@ def main(max_vocab_size, seq_len, batch_size, num_epochs,
         #print("\nbp{}\n".format(batch_index))
         if (batch_index*batch_size/num_data >= epoch_index):
             epoch_index = epoch_index + 1
-            validation_step(model, codes_to_words, val_dataset, test_dataset, epoch_index, num_epochs, batch_index)
-        #if (batch_index + 1) % num_batches_per_validation == 0:
-            #validation_step(model, codes_to_words, val_dataset, test_dataset, epoch_index, batch_index)
+            #validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size)
+        if (batch_index + 1) % num_batches_per_validation == 0:
+            validation_step(model, codes_to_words, val_dataset, test_dataset, num_data, epoch_index, num_epochs, batch_index, batch_size)
             
 
 if __name__ == '__main__':
     main(max_vocab_size=10000,
          seq_len=256,
          batch_size=64,
-         num_epochs=10,
+         num_epochs=30,
          num_layers=4,
          model_dims=256,
          attention_depth=16,
