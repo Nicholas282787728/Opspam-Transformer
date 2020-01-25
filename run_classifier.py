@@ -117,7 +117,7 @@ def validation_step(model,
         val_probs = model(inputs, training=False)
         val_preds = tf.math.greater(val_probs, 0.5)
         metric(tf.cast(labels, 'bool'), val_preds)
-        val_loss_val = loss_obj(labels, val_preds)
+        val_loss_val = loss_obj(labels, val_probs)
     val_acc_score = metric.result()
     
     # Print sample prediction.
@@ -149,7 +149,7 @@ def test_step(model,
         probs = model(inputs, training=False)
         preds = tf.math.greater(probs, 0.5)
         metric(tf.cast(labels, 'bool'), preds)
-        test_loss_val = loss_obj(labels, preds)
+        test_loss_val = loss_obj(labels, probs)
     test_acc_score = metric.result()
     
     print("\nTest loss value: {}".format(test_loss_val))
