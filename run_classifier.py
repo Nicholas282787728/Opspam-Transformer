@@ -121,7 +121,7 @@ def validation_step(model,
     val_acc_score = metric.result()
     
     # Print sample prediction.
-    inputs, labels = next(iter(test_dataset.take(1)))
+    inputs, labels = next(iter(val_dataset.take(1)))
     probs = model(inputs, training=False)
     batch_size = tf.shape(inputs).numpy()[0]
     rand_index = np.random.randint(low=0, high=batch_size)
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     main(max_vocab_size=10000,
          seq_len=256,
          batch_size=64,
-         num_epochs=20,
+         num_epochs=10,
          num_layers=4,
          model_dims=256,
          attention_depth=16,
