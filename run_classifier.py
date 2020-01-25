@@ -176,11 +176,11 @@ if __name__ == '__main__':
     main(max_vocab_size=10000,
          seq_len=256,
          batch_size=64,
-         num_epochs=30,
+         num_epochs=20,
          num_layers=4,
          model_dims=256,
          attention_depth=16,
          num_heads=8,
          hidden_dims=256,
-         num_batches_per_validation=50
+         num_batches_per_validation=25
     )   
