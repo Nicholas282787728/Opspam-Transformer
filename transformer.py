@@ -1,7 +1,7 @@
 '''
-My own transformer implementation.
+Forked transformer implementation.
 
-We build three models:
+Build three models:
 (a) A *language generation model*. Here, we only have a decoder; there is no encoder.
 (b) A *classifier*. This adds a classification head onto the 0th time step of the transformer.
 (c) A *translator*. This has both a decoder and an encoder.
