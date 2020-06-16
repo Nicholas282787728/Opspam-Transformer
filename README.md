@@ -1,5 +1,5 @@
 Opspam-Transformer 
-=============
+===================
 
-Transformers for opinion spam detection.
-
+- Transformers for sentiment analysis, opinion spam detection.
+- TensorFlow 2.0
